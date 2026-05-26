@@ -1,0 +1,22 @@
+[project]
+name = "smartqueue-backend"
+version = "0.1.0"
+description = "Backend de SmartQueue con FastAPI y SQLAlchemy"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.22.0",
+    "sqlalchemy>=2.0.0",
+    "pydantic>=2.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "httpx>=0.24.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

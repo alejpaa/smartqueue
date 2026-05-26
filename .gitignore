@@ -1,0 +1,19 @@
+# Python virtual envs and caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Databases
+backend/instance/
+*.db
+*.db-journal
+
+# Node packages and builds
+node_modules/
+dist/
+.DS_Store
+
+# Vite / Bun caches
+.bun/
+bun.lockb
