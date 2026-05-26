@@ -1,0 +1,160 @@
+import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+import sys
+import os
+
+# Añadir directorio backend al path de python para poder importar app
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from app.database import Base, get_db
+from app.main import app
+import app.models as models
+
+# Configuración de base de datos de pruebas aislada para los tests de SQA
+DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "instance")
+os.makedirs(DB_DIR, exist_ok=True)
+TEST_DB_PATH = os.path.join(DB_DIR, "test_sqa.db")
+
+# Si ya existe, lo eliminamos al iniciar
+if os.path.exists(TEST_DB_PATH):
+    try:
+        os.remove(TEST_DB_PATH)
+    except Exception:
+        pass
+
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{TEST_DB_PATH}"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Reemplazar la dependencia de la base de datos
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
+client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def setup_db():
+    # Crear tablas en la BD de pruebas limpia
+    Base.metadata.create_all(bind=engine)
+    db = TestingSessionLocal()
+    
+    # Cargar datos base mínimos para los tests
+    servicio = models.Servicio(nombre_servicio="Consulta Médica Test", descripcion="Test")
+    operador = models.Operador(nombre="Anderson SQA Tester", codigo_emp="EMP-TEST")
+    ventanilla = models.Ventanilla(numero_modulo=10, estado_fisico="ACTIVO")
+    
+    db.add_all([servicio, operador, ventanilla])
+    db.commit()
+    db.close()
+    
+    yield
+    
+    # Limpiar tablas y cerrar todo
+    Base.metadata.drop_all(bind=engine)
+    engine.dispose()
+    if os.path.exists(TEST_DB_PATH):
+        try:
+            os.remove(TEST_DB_PATH)
+        except Exception:
+            pass
+
+# ==================== TESTS SQA: INTEGRACIÓN DE API ====================
+
+def test_get_servicios_api():
+    """Prueba que el endpoint exponga correctamente la lista de servicios."""
+    response = client.get("/api/v1/servicios")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) >= 1
+    assert data[0]["nombre_servicio"] == "Consulta Médica Test"
+
+def test_create_ticket_api():
+    """Prueba que la Transacción 1 (Registro de Ticket) funcione correctamente."""
+    # Enviar payload para crear ticket
+    payload = {
+        "nombre": "Alejandro Padilla",
+        "dni": "77777777",
+        "celular": "999888777",
+        "id_servicio": 1
+    }
+    response = client.post("/api/v1/tickets", json=payload)
+    assert response.status_code == 201
+    data = response.json()
+    
+    # Validar campos del ticket generado
+    assert data["codigo_ticket"].startswith("CON-")  # Prefijo abreviado de Consulta
+    assert data["estado_turno"] == "ESPERA"
+    assert data["usuario"]["dni"] == "77777777"
+    assert data["tiempo_espera_estimado"] > 0
+
+# ==================== TESTS SQA: INTEGRIDAD DE LA BASE DE DATOS (ACID & ROLLBACK) ====================
+
+def test_acid_rollback_on_failed_transaction():
+    """
+    TEST DE ASEGURAMIENTO DE CALIDAD (SQA):
+    Verifica que si ocurre un fallo durante la creación del Ticket (por ejemplo,
+    un id_servicio inexistente), el bloque transaccional ACID realice un ROLLBACK completo.
+    Garantiza que no se guarde el 'Usuario' en la base de datos de manera inconsistente
+    (Atomocidad: todo o nada).
+    """
+    db = TestingSessionLocal()
+    
+    # Asegurar que el usuario no existe inicialmente
+    dni_test = "99999999"
+    usuario_existente = db.query(models.Usuario).filter(models.Usuario.dni == dni_test).first()
+    assert usuario_existente is None
+    db.close()
+    
+    # Intentar registrar ticket con id_servicio inexistente (provocará error 404 en FastAPI,
+    # pero a nivel transaccional probamos que no quede un Usuario huérfano sin ticket en la base de datos)
+    payload = {
+        "nombre": "Cliente Fallido",
+        "dni": dni_test,
+        "celular": "123456789",
+        "id_servicio": 999  # ID inexistente
+    }
+    
+    response = client.post("/api/v1/tickets", json=payload)
+    assert response.status_code == 404
+    
+    # Verificar que el usuario 'Cliente Fallido' NO se haya registrado
+    # porque la transacción general falló y se aplicó ROLLBACK
+    db = TestingSessionLocal()
+    usuario_guardado = db.query(models.Usuario).filter(models.Usuario.dni == dni_test).first()
+    assert usuario_guardado is None, "ERROR SQA: ¡Se guardó el usuario a pesar de que el ticket falló! (Fallo de Atomicidad)"
+    db.close()
+
+def test_operator_session_integrity():
+    """
+    Prueba que el registro de sesión del operador mantenga la consistencia.
+    Si se registra en un módulo, se deben desactivar sesiones previas del mismo operador.
+    """
+    # 1. Crear sesión para operador 1 en módulo 10 (id_operador=1, id_ventanilla=1)
+    payload = {
+        "id_operador": 1,
+        "id_ventanilla": 1
+    }
+    response1 = client.post("/api/v1/operadores/session", json=payload)
+    assert response1.status_code == 200
+    assert response1.json()["activo"] is True
+    
+    # 2. Iniciar sesión del mismo operador en otra ventanilla o volver a iniciar
+    # Esto debe desactivar automáticamente la sesión previa del mismo operador
+    response2 = client.post("/api/v1/operadores/session", json=payload)
+    assert response2.status_code == 200
+    
+    # Verificar en BD que solo quede una asignación activa
+    db = TestingSessionLocal()
+    activas = db.query(models.AsignacionModulo).filter(
+        models.AsignacionModulo.id_operador == 1,
+        models.AsignacionModulo.activo == True
+    ).count()
+    assert activas == 1, "ERROR SQA: Múltiples sesiones activas registradas para el mismo operador"
+    db.close()
