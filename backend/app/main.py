@@ -1,8 +1,10 @@
 import time
 import random
+import asyncio
 from datetime import datetime, timedelta
 from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
 from typing import List, Dict, Any
@@ -28,6 +30,43 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Estado Global de Caos en memoria para Ingeniería de Caos SQA
+CHAOS_SETTINGS = {
+    "latency_ms": 0,
+    "db_failure_rate": 0.0,
+    "server_down": False
+}
+
+def simulate_db_failure_if_active(db: Session):
+    """Lógica de inyección de caos: Simula un fallo de base de datos antes del commit."""
+    if CHAOS_SETTINGS["db_failure_rate"] > 0:
+        if random.random() < CHAOS_SETTINGS["db_failure_rate"]:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Fallo de integridad transaccional simulado (Ingeniería del Caos)"
+            )
+
+# Middleware de Inyección de Caos
+@app.middleware("http")
+async def chaos_middleware(request, call_next):
+    # Permitir endpoints de caos y WebSockets sin restricción de caída para poder recuperar/administrar
+    if request.url.path.startswith("/api/v1/chaos") or request.url.path == "/ws":
+        return await call_next(request)
+        
+    # 1. Simulación de servidor caído (503 Service Unavailable)
+    if CHAOS_SETTINGS["server_down"]:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Servidor fuera de servicio (Simulacion de Caos)"}
+        )
+        
+    # 2. Simulación de latencia de red/base de datos
+    if CHAOS_SETTINGS["latency_ms"] > 0:
+        await asyncio.sleep(CHAOS_SETTINGS["latency_ms"] / 1000.0)
+        
+    return await call_next(request)
 
 # SQA Transaction Log local para rastrear latencia de endpoints en milisegundos
 TRANSACTION_LATENCY_LOG: List[float] = []
@@ -117,6 +156,7 @@ async def create_operator_session(payload: schemas.AsignacionCreate, db: Session
         )
         
         db.add(nueva_asignacion)
+        simulate_db_failure_if_active(db)
         db.commit()
         db.refresh(nueva_asignacion)
         
@@ -222,6 +262,7 @@ async def create_ticket(payload: schemas.TicketCreate, db: Session = Depends(get
             tiempo_espera_estimado=tiempo_estimado
         )
         db.add(nuevo_ticket)
+        simulate_db_failure_if_active(db)
         db.commit() # Confirmar toda la transacción ACID de forma atómica
         db.refresh(nuevo_ticket)
         
@@ -306,6 +347,7 @@ async def call_next_ticket(
         ticket.id_ventanilla = id_ventanilla
         ticket.hora_inicio_atencion = func.now()
         
+        simulate_db_failure_if_active(db)
         db.commit()
         db.refresh(ticket)
         
@@ -362,6 +404,7 @@ async def close_ticket(id_ticket: int, db: Session = Depends(get_db)):
         ticket.estado_turno = "ATENDIDO"
         ticket.hora_fin_atencion = func.now()
         
+        simulate_db_failure_if_active(db)
         db.commit()
         db.refresh(ticket)
         
@@ -402,6 +445,7 @@ async def no_show_ticket(id_ticket: int, db: Session = Depends(get_db)):
     try:
         ticket.estado_turno = "NO_PRESENTO"
         ticket.hora_fin_atencion = func.now()
+        simulate_db_failure_if_active(db)
         db.commit()
         db.refresh(ticket)
         
@@ -423,6 +467,25 @@ async def no_show_ticket(id_ticket: int, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Fallo en transacción: {str(e)}"
         )
+
+# ==================== CONFIGURACIÓN DE CAOS ====================
+@app.get("/api/v1/chaos/config", response_model=schemas.ChaosConfig)
+def get_chaos_config():
+    return CHAOS_SETTINGS
+
+@app.post("/api/v1/chaos/config", response_model=schemas.ChaosConfig)
+async def update_chaos_config(payload: schemas.ChaosConfig):
+    global CHAOS_SETTINGS
+    CHAOS_SETTINGS["latency_ms"] = payload.latency_ms
+    CHAOS_SETTINGS["db_failure_rate"] = payload.db_failure_rate
+    CHAOS_SETTINGS["server_down"] = payload.server_down
+    
+    # Notificar a los clientes sobre cambios en la configuración de caos
+    await manager.broadcast({
+        "event": "chaos_config_changed",
+        "chaos_config": CHAOS_SETTINGS
+    })
+    return CHAOS_SETTINGS
 
 # ==================== MONITOREO & SQA METRICS ====================
 @app.get("/api/v1/admin/metrics", response_model=schemas.SqaMetrics)
