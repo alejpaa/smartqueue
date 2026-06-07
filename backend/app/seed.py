@@ -1,6 +1,5 @@
-from sqlalchemy.orm import Session
-from database import engine, Base, SessionLocal
-import models
+from .database import engine, Base, SessionLocal
+from . import models
 
 def seed_db():
     # Asegurar que las tablas estén creadas
