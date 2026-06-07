@@ -6,8 +6,21 @@ export default function ClientView({ services, backendUrl }) {
   const [celular, setCelular] = useState('');
   const [idServicio, setIdServicio] = useState('');
   const [loading, setLoading] = useState(false);
+  const [retryStatus, setRetryStatus] = useState('');
   const [error, setError] = useState('');
   const [successTicket, setSuccessTicket] = useState(null);
+
+  // Cargar ticket desde localStorage para resiliencia (SQA)
+  useEffect(() => {
+    const savedTicket = localStorage.getItem('smartqueue_active_ticket');
+    if (savedTicket) {
+      try {
+        setSuccessTicket(JSON.parse(savedTicket));
+      } catch (e) {
+        console.error("Error al cargar ticket guardado:", e);
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,42 +30,68 @@ export default function ClientView({ services, backendUrl }) {
     }
     setError('');
     setLoading(true);
+    setRetryStatus('');
 
-    try {
-      const response = await fetch(`${backendUrl}/api/v1/tickets`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre,
-          dni,
-          celular: celular || null,
-          id_servicio: parseInt(idServicio)
-        })
-      });
+    const maxRetries = 3;
+    let delay = 1000;
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Fallo al generar el ticket');
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const response = await fetch(`${backendUrl}/api/v1/tickets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombre,
+            dni,
+            celular: celular || null,
+            id_servicio: parseInt(idServicio)
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          // Si es un error temporal (503), lanzamos para reintentar
+          if (response.status === 503 && attempt < maxRetries) {
+            throw new Error(`Servidor ocupado (Código 503)`);
+          }
+          throw new Error(errorData.detail || 'Fallo al generar el ticket');
+        }
+
+        const ticketData = await response.json();
+        setSuccessTicket(ticketData);
+        
+        // Guardar en localStorage para tolerancia a caídas
+        localStorage.setItem('smartqueue_active_ticket', JSON.stringify(ticketData));
+        
+        // Reset form
+        setNombre('');
+        setDni('');
+        setCelular('');
+        setIdServicio('');
+        setRetryStatus('');
+        setLoading(false);
+        return; // Salir de la función al tener éxito
+      } catch (err) {
+        console.warn(`Intento ${attempt} de envío fallido:`, err.message);
+        if (attempt === maxRetries) {
+          setError(`Error tras ${maxRetries} intentos: ${err.message}`);
+          setRetryStatus('');
+          setLoading(false);
+          return;
+        }
+        // Configurar mensaje de reintento
+        setRetryStatus(`Error: ${err.message}. Reintentando envío (${attempt}/${maxRetries}) en ${delay/1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        delay *= 2; // Backoff exponencial
       }
-
-      const ticketData = await response.json();
-      setSuccessTicket(ticketData);
-      
-      // Reset form
-      setNombre('');
-      setDni('');
-      setCelular('');
-      setIdServicio('');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleReset = () => {
+    localStorage.removeItem('smartqueue_active_ticket');
     setSuccessTicket(null);
     setError('');
+    setRetryStatus('');
   };
 
   return (
@@ -68,6 +107,7 @@ export default function ClientView({ services, backendUrl }) {
             </div>
 
             {error && <div style={styles.errorAlert}>{error}</div>}
+            {retryStatus && <div style={styles.retryAlert}>{retryStatus}</div>}
 
             <form onSubmit={handleSubmit} style={styles.form}>
               <div className="form-group">
@@ -395,5 +435,16 @@ const styles = {
   },
   resetBtn: {
     width: '100%',
+  },
+  retryAlert: {
+    background: 'rgba(245, 158, 11, 0.12)',
+    border: '1px solid rgba(245, 158, 11, 0.2)',
+    color: '#fde047',
+    padding: '0.8rem 1rem',
+    borderRadius: '10px',
+    fontSize: '0.9rem',
+    marginBottom: '1.5rem',
+    textAlign: 'center',
+    fontWeight: '600'
   }
 };
