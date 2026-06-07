@@ -8,8 +8,18 @@ export default function AdminView({ backendUrl }) {
   const [auditLogs, setAuditLogs] = useState([]);
   const wsRef = useRef(null);
 
+  // Estados de Ingeniería de Caos
+  const [chaosConfig, setChaosConfig] = useState({
+    latency_ms: 0,
+    db_failure_rate: 0.0,
+    server_down: false
+  });
+  const [requestStats, setRequestStats] = useState({ total: 0, success: 0 });
+  const [mttrInfo, setMttrInfo] = useState({ mttr: null, lastOutageTime: null });
+
   useEffect(() => {
     fetchMetrics();
+    fetchChaosConfig();
     connectWebSocket();
 
     return () => {
@@ -17,14 +27,69 @@ export default function AdminView({ backendUrl }) {
     };
   }, []);
 
+  const fetchChaosConfig = async () => {
+    try {
+      const res = await fetch(`${backendUrl}/api/v1/chaos/config`);
+      if (res.ok) {
+        const data = await res.json();
+        setChaosConfig(data);
+      }
+    } catch (err) {
+      console.error("Error al cargar configuración de caos:", err);
+    }
+  };
+
+  const updateChaos = async (updatedFields) => {
+    const updatedConfig = { ...chaosConfig, ...updatedFields };
+    try {
+      const res = await fetch(`${backendUrl}/api/v1/chaos/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedConfig)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setChaosConfig(data);
+        const timestamp = new Date().toLocaleTimeString();
+        const msg = `[Caos] Configuración actualizada: Latencia=${data.latency_ms}ms, Fallos DB=${Math.round(data.db_failure_rate*100)}%, Caída=${data.server_down ? 'ACTIVA' : 'INACTIVA'}`;
+        setAuditLogs(prev => [{ time: timestamp, msg }, ...prev].slice(0, 15));
+      }
+    } catch (err) {
+      console.error("Error al actualizar configuración de caos:", err);
+    }
+  };
+
   const fetchMetrics = async () => {
+    setRequestStats(prev => ({ ...prev, total: prev.total + 1 }));
     try {
       const res = await fetch(`${backendUrl}/api/v1/admin/metrics`);
       if (!res.ok) throw new Error('Error al cargar métricas del servidor');
       const data = await res.json();
       setMetrics(data);
+      setError('');
+      setRequestStats(prev => ({ ...prev, success: prev.success + 1 }));
+      
+      // Calcular MTTR en recuperación exitosa
+      setMttrInfo(prev => {
+        if (prev.lastOutageTime) {
+          const recoveryTime = ((Date.now() - prev.lastOutageTime) / 1000).toFixed(1);
+          const timestamp = new Date().toLocaleTimeString();
+          setAuditLogs(logs => [
+            { time: timestamp, msg: `[SQA] Servidor recuperado exitosamente en ${recoveryTime}s (MTTR)` },
+            ...logs
+          ].slice(0, 15));
+          return { mttr: recoveryTime, lastOutageTime: null };
+        }
+        return prev;
+      });
     } catch (err) {
       setError(err.message);
+      setMttrInfo(prev => {
+        if (!prev.lastOutageTime) {
+          return { ...prev, lastOutageTime: Date.now() };
+        }
+        return prev;
+      });
     } finally {
       setLoading(false);
     }
@@ -57,6 +122,9 @@ export default function AdminView({ backendUrl }) {
           logMsg = `[No Presentado] Ticket ${data.ticket.codigo_ticket} marcado como inasistencia`;
         } else if (data.event === 'operator_session_started') {
           logMsg = `[Sesión] Operador ${data.operador} activo en Ventanilla ${data.ventanilla}`;
+        } else if (data.event === 'chaos_config_changed') {
+          logMsg = `[Caos] Configuración sincronizada por WebSocket: Latencia=${data.chaos_config.latency_ms}ms, Caída=${data.chaos_config.server_down ? 'SÍ' : 'NO'}`;
+          setChaosConfig(data.chaos_config);
         }
 
         if (logMsg) {
@@ -139,6 +207,114 @@ export default function AdminView({ backendUrl }) {
           <p style={styles.metricFooter}>
             📋 Cola total hoy
           </p>
+        </div>
+      </div>
+
+      {/* PANEL DE CONTROL DE INGENIERÍA DEL CAOS */}
+      <div className="glass-card fade-in" style={styles.chaosPanel}>
+        <div style={styles.chaosHeader}>
+          <span style={styles.chaosIcon}>⚡</span>
+          <div>
+            <h3 style={styles.chaosTitle}>Módulo de Experimentación y Control de Caos</h3>
+            <p className="text-muted" style={styles.chaosSubtitle}>
+              Inyecta anomalías en tiempo real para evaluar la tolerancia a fallos de SmartQueue y comprobar la consistencia transaccional (ACID).
+            </p>
+          </div>
+        </div>
+
+        <div style={styles.chaosContent}>
+          {/* CONTROL: LATENCIA */}
+          <div style={styles.chaosControlItem}>
+            <div style={styles.controlHeader}>
+              <span style={styles.controlLabel}>Inyectar Latencia de Red/Procesamiento</span>
+              <span style={{
+                ...styles.controlValue,
+                color: chaosConfig.latency_ms > 1000 ? 'var(--accent-red)' : chaosConfig.latency_ms > 200 ? 'var(--accent-orange)' : 'var(--accent-blue)'
+              }}>
+                {chaosConfig.latency_ms} ms
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="2000"
+              step="100"
+              value={chaosConfig.latency_ms}
+              onChange={(e) => updateChaos({ latency_ms: parseInt(e.target.value) })}
+              style={styles.slider}
+            />
+            <span style={styles.controlDesc}>Añade retraso artificial en milisegundos a todos los endpoints de negocio.</span>
+          </div>
+
+          {/* CONTROL: FALLOS DE TRANSACCIÓN */}
+          <div style={styles.chaosControlItem}>
+            <div style={styles.controlHeader}>
+              <span style={styles.controlLabel}>Tasa de Fallos de Transacción (DB)</span>
+              <span style={{
+                ...styles.controlValue,
+                color: chaosConfig.db_failure_rate > 0.5 ? 'var(--accent-red)' : chaosConfig.db_failure_rate > 0 ? 'var(--accent-orange)' : 'var(--accent-green)'
+              }}>
+                {Math.round(chaosConfig.db_failure_rate * 100)}%
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0.0"
+              max="1.0"
+              step="0.1"
+              value={chaosConfig.db_failure_rate}
+              onChange={(e) => updateChaos({ db_failure_rate: parseFloat(e.target.value) })}
+              style={styles.slider}
+            />
+            <span style={styles.controlDesc}>Probabilidad de abortar transacciones justo antes del commit (fuerza Rollback).</span>
+          </div>
+
+          {/* CONTROL: SERVIDOR CAÍDO */}
+          <div style={styles.chaosControlItem}>
+            <div style={styles.controlHeader}>
+              <span style={styles.controlLabel}>Simular Caída del Servidor (503)</span>
+            </div>
+            <button
+              onClick={() => updateChaos({ server_down: !chaosConfig.server_down })}
+              style={{
+                ...styles.toggleBtn,
+                background: chaosConfig.server_down ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.03)',
+                borderColor: chaosConfig.server_down ? '#ef4444' : 'rgba(255,255,255,0.1)',
+                color: chaosConfig.server_down ? '#ef4444' : 'var(--text-main)'
+              }}
+            >
+              {chaosConfig.server_down ? '🔴 Servidor Offline' : '🟢 Servidor Activo'}
+            </button>
+            <span style={styles.controlDesc}>Retorna error 503 en la API e interrumpe la carga de datos.</span>
+          </div>
+
+          {/* MONITOR DE RESILIENCIA SQA */}
+          <div style={styles.resilienceMonitor}>
+            <h4 style={styles.resilienceTitle}>Resiliencia del Sistema SQA</h4>
+            <div style={styles.resilienceMetrics}>
+              <div style={styles.resilienceMetricBox}>
+                <span style={styles.resilienceLabel}>Éxito de Peticiones</span>
+                <span style={{
+                  ...styles.resilienceValue,
+                  color: requestStats.total === 0 ? 'var(--text-main)' : (requestStats.success / requestStats.total) > 0.9 ? 'var(--accent-green)' : (requestStats.success / requestStats.total) > 0.5 ? 'var(--accent-orange)' : 'var(--accent-red)'
+                }}>
+                  {requestStats.total === 0 ? '100%' : `${((requestStats.success / requestStats.total) * 100).toFixed(1)}%`}
+                </span>
+              </div>
+              <div style={styles.resilienceMetricBox}>
+                <span style={styles.resilienceLabel}>Tiempo de Recuperación</span>
+                <span style={{ ...styles.resilienceValue, color: 'var(--accent-cyan)' }}>
+                  {mttrInfo.mttr ? `${mttrInfo.mttr}s` : 'Estable'}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => updateChaos({ latency_ms: 0, db_failure_rate: 0.0, server_down: false })}
+              style={styles.resetChaosBtn}
+            >
+              🔄 Restablecer Todo (Limpiar Caos)
+            </button>
+          </div>
         </div>
       </div>
 
@@ -410,5 +586,140 @@ const styles = {
     borderRadius: '10px',
     fontSize: '0.9rem',
     marginBottom: '1.5rem',
+  },
+  chaosPanel: {
+    padding: '1.5rem',
+    marginBottom: '1.5rem',
+    border: '1px solid rgba(255, 255, 255, 0.06)',
+  },
+  chaosHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.75rem',
+    marginBottom: '1.25rem',
+  },
+  chaosIcon: {
+    fontSize: '1.5rem',
+    background: 'rgba(239, 68, 68, 0.12)',
+    padding: '0.4rem 0.6rem',
+    borderRadius: '8px',
+    border: '1px solid rgba(239, 68, 68, 0.2)',
+    color: '#ef4444',
+  },
+  chaosTitle: {
+    fontSize: '1.1rem',
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  chaosSubtitle: {
+    fontSize: '0.8rem',
+    marginTop: '0.1rem',
+  },
+  chaosContent: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+    gap: '1.5rem',
+    alignItems: 'stretch',
+  },
+  chaosControlItem: {
+    background: 'rgba(255, 255, 255, 0.01)',
+    border: '1px solid rgba(255, 255, 255, 0.04)',
+    borderRadius: '10px',
+    padding: '1rem',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    gap: '0.75rem',
+  },
+  controlHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: '0.5rem',
+  },
+  controlLabel: {
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    color: 'var(--text-main)',
+  },
+  controlValue: {
+    fontSize: '0.85rem',
+    fontWeight: '700',
+    fontFamily: 'monospace',
+  },
+  controlDesc: {
+    fontSize: '0.7rem',
+    color: 'var(--text-muted)',
+    lineHeight: '1.3',
+  },
+  slider: {
+    width: '100%',
+    accentColor: 'var(--accent-blue)',
+    cursor: 'pointer',
+    height: '6px',
+    borderRadius: '3px',
+    background: 'rgba(255, 255, 255, 0.1)',
+  },
+  toggleBtn: {
+    width: '100%',
+    padding: '0.5rem',
+    fontSize: '0.8rem',
+    fontWeight: '600',
+    borderRadius: '6px',
+    border: '1px solid',
+    cursor: 'pointer',
+    transition: 'all 0.25s ease',
+  },
+  resilienceMonitor: {
+    background: 'rgba(59, 130, 246, 0.02)',
+    border: '1px solid rgba(59, 130, 246, 0.08)',
+    borderRadius: '10px',
+    padding: '1rem',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    gap: '0.75rem',
+  },
+  resilienceTitle: {
+    fontSize: '0.85rem',
+    fontWeight: '700',
+    color: 'var(--accent-blue)',
+  },
+  resilienceMetrics: {
+    display: 'flex',
+    gap: '1rem',
+  },
+  resilienceMetricBox: {
+    flex: 1,
+    background: 'rgba(255, 255, 255, 0.02)',
+    border: '1px solid rgba(255, 255, 255, 0.04)',
+    borderRadius: '6px',
+    padding: '0.5rem',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resilienceLabel: {
+    fontSize: '0.65rem',
+    color: 'var(--text-muted)',
+    fontWeight: '500',
+    marginBottom: '0.2rem',
+  },
+  resilienceValue: {
+    fontSize: '1rem',
+    fontWeight: '800',
+  },
+  resetChaosBtn: {
+    background: 'rgba(255, 255, 255, 0.04)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+    color: 'var(--text-main)',
+    padding: '0.45rem',
+    fontSize: '0.75rem',
+    fontWeight: '600',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    transition: 'all 0.25s ease',
+    textAlign: 'center',
   }
 };
