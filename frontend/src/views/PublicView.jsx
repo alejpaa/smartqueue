@@ -84,9 +84,9 @@ export default function PublicView({ backendUrl }) {
     };
 
     ws.onclose = () => {
-      setWsStatus('DESCONECTADO');
-      // Intentar reconexión cada 5 segundos
-      setTimeout(connectWebSocket, 5000);
+      setWsStatus('RECONECTANDO');
+      // Intentar reconexión cada 3 segundos
+      setTimeout(connectWebSocket, 3000);
     };
   };
 
@@ -154,9 +154,11 @@ export default function PublicView({ backendUrl }) {
         <div style={styles.statusRow}>
           <span style={{
             ...styles.dot,
-            backgroundColor: wsStatus === 'CONECTADO' ? 'var(--accent-green)' : 'var(--accent-red)'
+            backgroundColor: wsStatus === 'CONECTADO' ? 'var(--accent-green)' : wsStatus === 'RECONECTANDO' ? 'var(--accent-orange)' : 'var(--accent-red)'
           }}></span>
-          <span style={styles.wsText}>{wsStatus === 'CONECTADO' ? 'En Vivo' : 'Desconectado'}</span>
+          <span style={styles.wsText}>
+            {wsStatus === 'CONECTADO' ? 'En Vivo' : wsStatus === 'RECONECTANDO' ? 'Reconectando...' : 'Desconectado'}
+          </span>
         </div>
       </div>
 

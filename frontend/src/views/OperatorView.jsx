@@ -66,8 +66,8 @@ export default function OperatorView({ operators, modules, backendUrl }) {
       }
     };
     ws.onclose = () => {
-      setWsStatus('DESCONECTADO');
-      setTimeout(connectWebSocket, 5000);
+      setWsStatus('RECONECTANDO');
+      setTimeout(connectWebSocket, 3000);
     };
   };
 
@@ -297,9 +297,11 @@ export default function OperatorView({ operators, modules, backendUrl }) {
                 <div style={styles.metaRow}>
                   <span>Canal WebSocket:</span>
                   <span style={{
-                    color: wsStatus === 'CONECTADO' ? 'var(--accent-green)' : 'var(--accent-red)',
+                    color: wsStatus === 'CONECTADO' ? 'var(--accent-green)' : wsStatus === 'RECONECTANDO' ? 'var(--accent-orange)' : 'var(--accent-red)',
                     fontWeight: '600'
-                  }}>{wsStatus}</span>
+                  }}>
+                    {wsStatus === 'CONECTADO' ? '🟢 CONECTADO' : wsStatus === 'RECONECTANDO' ? '🟡 RECONECTANDO...' : '🔴 DESCONECTADO'}
+                  </span>
                 </div>
               </div>
             </div>
