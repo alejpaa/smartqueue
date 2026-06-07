@@ -209,6 +209,23 @@ export default function PublicView({ backendUrl }) {
               </div>
             )}
           </div>
+          
+          {/* SECCIÓN QR PARA ACCESO MÓVIL */}
+          <div style={styles.qrAccessContainer}>
+            <div style={styles.qrAccessDivider}></div>
+            <h4 style={styles.qrAccessTitle}>📱 Registro Móvil</h4>
+            <p className="text-muted" style={styles.qrAccessDesc}>
+              Escanea este código QR con tu celular para solicitar tu turno digitalmente.
+            </p>
+            <div style={styles.qrAccessBox}>
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=110x110&data=${encodeURIComponent(window.location.origin)}`}
+                alt="QR Registro Móvil"
+                style={styles.qrAccessImg}
+              />
+            </div>
+            <span style={styles.qrAccessUrl}>{window.location.origin}</span>
+          </div>
         </div>
       </div>
 
@@ -433,6 +450,52 @@ const styles = {
     whiteSpace: 'nowrap',
     fontSize: '0.85rem',
     color: 'var(--text-main)',
+  },
+  qrAccessContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    textAlign: 'center',
+    marginTop: 'auto',
+    paddingTop: '1rem',
+  },
+  qrAccessDivider: {
+    width: '100%',
+    borderTop: '1px dashed rgba(255, 255, 255, 0.08)',
+    marginBottom: '1rem',
+  },
+  qrAccessTitle: {
+    fontSize: '0.85rem',
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: '0.3rem',
+  },
+  qrAccessDesc: {
+    fontSize: '0.7rem',
+    lineHeight: '1.3',
+    maxWidth: '240px',
+    marginBottom: '0.8rem',
+  },
+  qrAccessBox: {
+    background: '#ffffff',
+    padding: '6px',
+    borderRadius: '8px',
+    display: 'inline-flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: '0.4rem',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+  },
+  qrAccessImg: {
+    width: '100px',
+    height: '100px',
+    display: 'block',
+  },
+  qrAccessUrl: {
+    fontSize: '0.65rem',
+    color: 'var(--accent-blue)',
+    fontFamily: 'monospace',
+    fontWeight: '600',
   }
 };
 
