@@ -6,12 +6,24 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 DB_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "instance")
 os.makedirs(DB_DIR, exist_ok=True)
 
-SQLALCHEMY_DATABASE_URL = f"sqlite:///{os.path.join(DB_DIR, 'smartqueue.db')}"
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# connect_args={"check_same_thread": False} es necesario solo para SQLite
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-)
+if SQLALCHEMY_DATABASE_URL:
+    # Ajustar para SQLAlchemy si se provee postgres:// en lugar de postgresql://
+    if SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+        SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL,
+        pool_pre_ping=True,  # SQA tactic: prevent using stale database connections
+    )
+else:
+    SQLALCHEMY_DATABASE_URL = f"sqlite:///{os.path.join(DB_DIR, 'smartqueue.db')}"
+    # connect_args={"check_same_thread": False} es necesario solo para SQLite
+    engine = create_engine(
+        SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    )
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
