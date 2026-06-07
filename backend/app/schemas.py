@@ -104,3 +104,10 @@ class SqaMetrics(BaseModel):
     total_no_presento: int = 0
     uptime_sistema: float = 100.0        # % simulado
     latencias: List[float] = []          # Tiempos de respuesta de transacciones en ms
+
+# ==================== CONFIGURACIÓN DE CAOS ====================
+class ChaosConfig(BaseModel):
+    latency_ms: int = Field(0, description="Milisegundos de latencia artificial a inyectar")
+    db_failure_rate: float = Field(0.0, description="Tasa de fallos artificiales de base de datos (0.0 a 1.0)")
+    server_down: bool = Field(False, description="Simular caida total del servidor backend (503)")
+
