@@ -11,6 +11,9 @@ export default function App() {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('smartqueue_theme') || 'dark';
+  });
 
   // Usar la dirección del backend por defecto
   const backendUrl = 'http://localhost:8000';
@@ -18,6 +21,11 @@ export default function App() {
   useEffect(() => {
     fetchInitialData();
   }, []);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('smartqueue_theme', theme);
+  }, [theme]);
 
   const fetchInitialData = async () => {
     try {
@@ -59,54 +67,96 @@ export default function App() {
       {/* HEADER DE NAVEGACIÓN GLOWING PREMIUM */}
       <header className="glass-card" style={styles.navbar}>
         <div style={styles.navBrand}>
-          <span style={styles.brandEmoji}>⚡</span>
+          <svg className="svg-icon" style={styles.brandIcon} viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
           <span className="gradient-text" style={styles.brandText}>SmartQueue</span>
-          <span style={styles.brandVersion}>v1.0 MVP + SQA</span>
+          <span style={styles.brandVersion}>Sistema Activo</span>
         </div>
         <nav style={styles.navLinks}>
           <button
             onClick={() => setActiveTab('client')}
             style={{
               ...styles.navBtn,
-              color: activeTab === 'client' ? '#ffffff' : 'var(--text-muted)',
-              background: activeTab === 'client' ? 'rgba(59,130,246,0.15)' : 'none',
-              borderColor: activeTab === 'client' ? 'var(--accent-blue)' : 'transparent',
+              color: activeTab === 'client' ? 'var(--accent-indigo)' : 'var(--text-secondary)',
+              background: activeTab === 'client' ? 'rgba(99,102,241,0.12)' : 'none',
+              borderColor: activeTab === 'client' ? 'var(--accent-indigo)' : 'transparent',
             }}
           >
-            📱 Registro Cliente
+            <svg className="svg-icon" viewBox="0 0 24 24">
+              <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/>
+              <path d="M13 5v14"/>
+              <path d="M9 9h.01"/>
+              <path d="M9 15h.01"/>
+              <path d="M17 9h.01"/>
+              <path d="M17 15h.01"/>
+            </svg>
+            Registro de Cliente
           </button>
           <button
             onClick={() => setActiveTab('public')}
             style={{
               ...styles.navBtn,
-              color: activeTab === 'public' ? '#ffffff' : 'var(--text-muted)',
-              background: activeTab === 'public' ? 'rgba(6,182,212,0.15)' : 'none',
+              color: activeTab === 'public' ? 'var(--accent-cyan)' : 'var(--text-secondary)',
+              background: activeTab === 'public' ? 'rgba(6,182,212,0.12)' : 'none',
               borderColor: activeTab === 'public' ? 'var(--accent-cyan)' : 'transparent',
             }}
           >
-            📺 Pantalla Sala
+            <svg className="svg-icon" viewBox="0 0 24 24">
+              <rect width="20" height="15" x="2" y="3" rx="2"/>
+              <path d="M12 18v4"/>
+              <path d="M8 22h8"/>
+            </svg>
+            Pantalla de Sala
           </button>
           <button
             onClick={() => setActiveTab('operator')}
             style={{
               ...styles.navBtn,
-              color: activeTab === 'operator' ? '#ffffff' : 'var(--text-muted)',
-              background: activeTab === 'operator' ? 'rgba(139,92,246,0.15)' : 'none',
+              color: activeTab === 'operator' ? 'var(--accent-purple)' : 'var(--text-secondary)',
+              background: activeTab === 'operator' ? 'rgba(139,92,246,0.12)' : 'none',
               borderColor: activeTab === 'operator' ? 'var(--accent-purple)' : 'transparent',
             }}
           >
-            💼 Ventanilla Asesor
+            <svg className="svg-icon" viewBox="0 0 24 24">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="m16 11 2 2 4-4"/>
+            </svg>
+            Terminal de Asesor
           </button>
           <button
             onClick={() => setActiveTab('admin')}
             style={{
               ...styles.navBtn,
-              color: activeTab === 'admin' ? '#ffffff' : 'var(--text-muted)',
-              background: activeTab === 'admin' ? 'rgba(16,185,129,0.15)' : 'none',
-              borderColor: activeTab === 'admin' ? 'var(--accent-green)' : 'transparent',
+              color: activeTab === 'admin' ? 'var(--accent-emerald)' : 'var(--text-secondary)',
+              background: activeTab === 'admin' ? 'rgba(16,185,129,0.12)' : 'none',
+              borderColor: activeTab === 'admin' ? 'var(--accent-emerald)' : 'transparent',
             }}
           >
-            📈 Panel SQA
+            <svg className="svg-icon" viewBox="0 0 24 24">
+              <line x1="18" x2="18" y1="20" y2="10"/>
+              <line x1="12" x2="12" y1="20" y2="4"/>
+              <line x1="6" x2="6" y1="20" y2="14"/>
+            </svg>
+            Panel de Control
+          </button>
+          
+          <button
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            style={styles.themeToggleBtn}
+            title={theme === 'dark' ? 'Cambiar a Modo Claro' : 'Cambiar a Modo Oscuro'}
+          >
+            {theme === 'dark' ? (
+              <svg className="svg-icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+            ) : (
+              <svg className="svg-icon" viewBox="0 0 24 24">
+                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+              </svg>
+            )}
           </button>
         </nav>
       </header>
@@ -115,10 +165,10 @@ export default function App() {
       <main className="premium-container">
         {error && (
           <div style={styles.errorBanner} className="fade-in">
-            <h4 style={styles.errTitle}>⚠️ Error de Conexión</h4>
+            <h4 style={styles.errTitle}>Error de Conexión</h4>
             <p style={styles.errText}>{error}</p>
             <button onClick={fetchInitialData} style={styles.retryBtn}>
-              🔄 Intentar Reconectar
+              Intentar Reconectar
             </button>
           </div>
         )}
@@ -126,7 +176,7 @@ export default function App() {
         {!error && loading ? (
           <div style={styles.loadingContainer}>
             <div style={styles.spinner}></div>
-            <p className="text-muted">Cargando base de datos y servicios en tiempo real...</p>
+            <p className="text-muted">Estableciendo conexión en tiempo real...</p>
           </div>
         ) : (
           !error && (
@@ -150,8 +200,7 @@ export default function App() {
       
       {/* PIE DE PÁGINA */}
       <footer style={styles.footer}>
-        <p>Desarrollado para el avance del Proyecto **SmartQueue** • UNMSM Facultad de Ingeniería de Sistemas e Informática</p>
-        <p style={styles.authors}>Autores: J. Brandon Fernandez Cavero • J. David Valqui Vargas • A. Tataje Rodriguez • Alejandro Manuel Padilla Arellano (2026)</p>
+        <p>© 2026 SmartQueue • Sistema Inteligente de Gestión de Colas</p>
       </footer>
     </div>
   );
@@ -176,10 +225,14 @@ const styles = {
   navBrand: {
     display: 'flex',
     alignItems: 'center',
-    gap: '0.5rem',
+    gap: '0.6rem',
   },
-  brandEmoji: {
-    fontSize: '1.4rem',
+  brandIcon: {
+    width: '1.6rem',
+    height: '1.6rem',
+    stroke: 'var(--accent-indigo)',
+    strokeWidth: 2.5,
+    fill: 'none',
   },
   brandText: {
     fontSize: '1.4rem',
@@ -188,17 +241,17 @@ const styles = {
   },
   brandVersion: {
     fontSize: '0.7rem',
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.06)',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.05)',
     padding: '0.2rem 0.5rem',
     borderRadius: '6px',
-    marginLeft: '0.5rem',
-    color: 'var(--text-muted)',
+    marginLeft: '0.4rem',
+    color: 'var(--text-secondary)',
     fontWeight: '600',
   },
   navLinks: {
     display: 'flex',
-    gap: '0.5rem',
+    gap: '0.4rem',
     flexWrap: 'wrap',
   },
   navBtn: {
@@ -209,31 +262,34 @@ const styles = {
     borderRadius: '10px',
     cursor: 'pointer',
     transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.5rem',
   },
   errorBanner: {
-    background: 'rgba(239, 68, 68, 0.08)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
+    background: 'rgba(244, 63, 94, 0.05)',
+    border: '1px solid rgba(244, 63, 94, 0.15)',
     borderRadius: '12px',
     padding: '2rem',
     textAlign: 'center',
-    maxWidth: '650px',
+    maxWidth: '600px',
     margin: '4rem auto',
-    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.2)',
+    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.3)',
   },
   errTitle: {
     fontSize: '1.2rem',
-    color: '#ef4444',
+    color: 'var(--accent-rose)',
     marginBottom: '0.5rem',
   },
   errText: {
     fontSize: '0.95rem',
-    color: '#fca5a5',
+    color: 'var(--text-secondary)',
     lineHeight: '1.5',
     marginBottom: '1.5rem',
   },
   retryBtn: {
-    background: 'rgba(255,255,255,0.04)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.08)',
     color: '#ffffff',
     borderRadius: '8px',
     padding: '0.6rem 1.5rem',
@@ -253,25 +309,31 @@ const styles = {
   spinner: {
     width: '40px',
     height: '40px',
-    border: '3px solid rgba(255,255,255,0.05)',
-    borderTop: '3px solid var(--accent-blue)',
+    border: '3px solid rgba(255,255,255,0.03)',
+    borderTop: '3px solid var(--accent-indigo)',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
   footer: {
     marginTop: 'auto',
     textAlign: 'center',
-    padding: '2.5rem 1.5rem',
-    borderTop: '1px solid rgba(255,255,255,0.03)',
+    padding: '2rem 1.5rem',
+    borderTop: '1px solid rgba(255,255,255,0.02)',
     fontSize: '0.8rem',
     color: 'var(--text-muted)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.4rem',
   },
-  authors: {
-    fontSize: '0.75rem',
-    opacity: 0.8,
+  themeToggleBtn: {
+    border: '1px solid var(--glass-border-hover)',
+    padding: '0.5rem',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(255, 255, 255, 0.01)',
+    color: 'var(--text-primary)',
+    marginLeft: '0.5rem',
   }
 };
 

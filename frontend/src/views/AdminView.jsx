@@ -51,7 +51,7 @@ export default function AdminView({ backendUrl }) {
         const data = await res.json();
         setChaosConfig(data);
         const timestamp = new Date().toLocaleTimeString();
-        const msg = `[Caos] Configuración actualizada: Latencia=${data.latency_ms}ms, Fallos DB=${Math.round(data.db_failure_rate*100)}%, Caída=${data.server_down ? 'ACTIVA' : 'INACTIVA'}`;
+        const msg = `[Simulación] Configuración actualizada: Latencia=${data.latency_ms}ms, Fallos DB=${Math.round(data.db_failure_rate*100)}%, Caída del Backend=${data.server_down ? 'ACTIVA' : 'INACTIVA'}`;
         setAuditLogs(prev => [{ time: timestamp, msg }, ...prev].slice(0, 15));
       }
     } catch (err) {
@@ -75,7 +75,7 @@ export default function AdminView({ backendUrl }) {
           const recoveryTime = ((Date.now() - prev.lastOutageTime) / 1000).toFixed(1);
           const timestamp = new Date().toLocaleTimeString();
           setAuditLogs(logs => [
-            { time: timestamp, msg: `[SQA] Servidor recuperado exitosamente en ${recoveryTime}s (MTTR)` },
+            { time: timestamp, msg: `[Sistema] Backend restablecido en ${recoveryTime}s (MTTR)` },
             ...logs
           ].slice(0, 15));
           return { mttr: recoveryTime, lastOutageTime: null };
@@ -113,17 +113,17 @@ export default function AdminView({ backendUrl }) {
         let logMsg = '';
         
         if (data.event === 'ticket_created') {
-          logMsg = `[Transacción 1] Creado ticket ${data.ticket.codigo_ticket} para ${data.ticket.nombre_cliente} (Espera: ${data.ticket.tiempo_espera_estimado} min)`;
+          logMsg = `[Turno Creado] Ticket ${data.ticket.codigo_ticket} para ${data.ticket.nombre_cliente} (Espera: ${data.ticket.tiempo_espera_estimado} min)`;
         } else if (data.event === 'ticket_called') {
-          logMsg = `[Llamado] Ticket ${data.ticket.codigo_ticket} convocado al Módulo ${data.ticket.numero_modulo}`;
+          logMsg = `[Turno Llamado] Ticket ${data.ticket.codigo_ticket} convocado al Módulo ${data.ticket.numero_modulo}`;
         } else if (data.event === 'ticket_closed') {
-          logMsg = `[Transacción 2] Cierre de ticket ${data.ticket.codigo_ticket} (Atención Finalizada)`;
+          logMsg = `[Turno Finalizado] Cierre de ticket ${data.ticket.codigo_ticket} (Atención Finalizada)`;
         } else if (data.event === 'ticket_no_show') {
-          logMsg = `[No Presentado] Ticket ${data.ticket.codigo_ticket} marcado como inasistencia`;
+          logMsg = `[Inasistencia] Ticket ${data.ticket.codigo_ticket} marcado como inasistencia`;
         } else if (data.event === 'operator_session_started') {
-          logMsg = `[Sesión] Operador ${data.operador} activo en Ventanilla ${data.ventanilla}`;
+          logMsg = `[Asesor Activo] Operador ${data.operador} activo en Ventanilla ${data.ventanilla}`;
         } else if (data.event === 'chaos_config_changed') {
-          logMsg = `[Caos] Configuración sincronizada por WebSocket: Latencia=${data.chaos_config.latency_ms}ms, Caída=${data.chaos_config.server_down ? 'SÍ' : 'NO'}`;
+          logMsg = `[Simulación] Configuración sincronizada: Latencia=${data.chaos_config.latency_ms}ms, Caída=${data.chaos_config.server_down ? 'SÍ' : 'NO'}`;
           setChaosConfig(data.chaos_config);
         }
 
@@ -144,24 +144,24 @@ export default function AdminView({ backendUrl }) {
   };
 
   if (loading && !metrics) {
-    return <div style={styles.loading}>Cargando Panel de Calidad SQA...</div>;
+    return <div style={styles.loading}>Cargando Panel de Control...</div>;
   }
 
   return (
     <div style={styles.container} className="fade-in">
       <div style={styles.header}>
         <div>
-          <h1 className="gradient-text" style={styles.title}>Panel Analítico SQA</h1>
+          <h1 className="gradient-text" style={styles.title}>Panel de Control</h1>
           <p className="text-muted" style={styles.subtitle}>
-            Aseguramiento de Calidad de Software: Monitoreo técnico de latencias ACID e indicadores de servicio en vivo.
+            Supervisión operativa y métricas de rendimiento en tiempo real.
           </p>
         </div>
         <div style={styles.wsRow}>
           <span style={{
             ...styles.dot,
-            backgroundColor: wsStatus === 'CONECTADO' ? 'var(--accent-green)' : 'var(--accent-red)'
+            backgroundColor: wsStatus === 'CONECTADO' ? 'var(--accent-emerald)' : 'var(--accent-rose)'
           }}></span>
-          <span style={styles.wsText}>Logs SQA: {wsStatus === 'CONECTADO' ? 'Activos' : 'Pausados'}</span>
+          <span style={styles.wsText}>Canal de Eventos: {wsStatus === 'CONECTADO' ? 'Activo' : 'Desconectado'}</span>
         </div>
       </div>
 
@@ -174,18 +174,18 @@ export default function AdminView({ backendUrl }) {
           <h2 style={styles.metricValue}>
             {metrics?.tiempo_espera_promedio} <span style={styles.metricUnit}>min</span>
           </h2>
-          <p style={{ ...styles.metricFooter, color: 'var(--accent-blue)' }}>
-            🎯 Meta SLA: &lt; 15 min
+          <p style={{ ...styles.metricFooter, color: 'var(--accent-indigo)' }}>
+            SLA de Servicio: &lt; 15 min
           </p>
         </div>
 
         <div className="glass-card" style={styles.metricCard}>
           <span style={styles.metricLabel}>Tasa de Abandono</span>
-          <h2 style={{ ...styles.metricValue, color: metrics?.tasa_abandono > 10 ? 'var(--accent-red)' : 'var(--accent-green)' }}>
+          <h2 style={{ ...styles.metricValue, color: metrics?.tasa_abandono > 10 ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
             {metrics?.tasa_abandono} <span style={styles.metricUnit}>%</span>
           </h2>
           <p style={styles.metricFooter}>
-            📉 Inasistencias y cancelados
+            Índice de inasistencias y cancelados
           </p>
         </div>
 
@@ -195,17 +195,17 @@ export default function AdminView({ backendUrl }) {
             {metrics?.uptime_sistema} <span style={styles.metricUnit}>%</span>
           </h2>
           <p style={styles.metricFooter}>
-            🛡️ Arquitectura tolerante a fallos
+            Disponibilidad general de sistemas
           </p>
         </div>
 
         <div className="glass-card" style={styles.metricCard}>
           <span style={styles.metricLabel}>Tickets Atendidos</span>
-          <h2 style={{ ...styles.metricValue, color: 'var(--accent-green)' }}>
+          <h2 style={{ ...styles.metricValue, color: 'var(--accent-emerald)' }}>
             {metrics?.total_atendidos} <span style={styles.metricUnit}>/ {metrics?.total_tickets}</span>
           </h2>
           <p style={styles.metricFooter}>
-            📋 Cola total hoy
+            Volumen de colas registrado hoy
           </p>
         </div>
       </div>
@@ -213,11 +213,13 @@ export default function AdminView({ backendUrl }) {
       {/* PANEL DE CONTROL DE INGENIERÍA DEL CAOS */}
       <div className="glass-card fade-in" style={styles.chaosPanel}>
         <div style={styles.chaosHeader}>
-          <span style={styles.chaosIcon}>⚡</span>
+          <svg className="svg-icon svg-icon-lg" style={{ color: 'var(--accent-indigo)', marginRight: '1rem', width: '2.5rem', height: '2.5rem' }} viewBox="0 0 24 24">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+          </svg>
           <div>
-            <h3 style={styles.chaosTitle}>Módulo de Experimentación y Control de Caos</h3>
+            <h3 style={styles.chaosTitle}>Simulador de Resiliencia</h3>
             <p className="text-muted" style={styles.chaosSubtitle}>
-              Inyecta anomalías en tiempo real para evaluar la tolerancia a fallos de SmartQueue y comprobar la consistencia transaccional (ACID).
+              Configure condiciones extremas de red y bases de datos para evaluar el comportamiento de la aplicación en tiempo real.
             </p>
           </div>
         </div>
@@ -226,10 +228,10 @@ export default function AdminView({ backendUrl }) {
           {/* CONTROL: LATENCIA */}
           <div style={styles.chaosControlItem}>
             <div style={styles.controlHeader}>
-              <span style={styles.controlLabel}>Inyectar Latencia de Red/Procesamiento</span>
+              <span style={styles.controlLabel}>Simular Latencia de Red</span>
               <span style={{
                 ...styles.controlValue,
-                color: chaosConfig.latency_ms > 1000 ? 'var(--accent-red)' : chaosConfig.latency_ms > 200 ? 'var(--accent-orange)' : 'var(--accent-blue)'
+                color: chaosConfig.latency_ms > 1000 ? 'var(--accent-rose)' : chaosConfig.latency_ms > 200 ? 'var(--accent-amber)' : 'var(--accent-indigo)'
               }}>
                 {chaosConfig.latency_ms} ms
               </span>
@@ -243,16 +245,16 @@ export default function AdminView({ backendUrl }) {
               onChange={(e) => updateChaos({ latency_ms: parseInt(e.target.value) })}
               style={styles.slider}
             />
-            <span style={styles.controlDesc}>Añade retraso artificial en milisegundos a todos los endpoints de negocio.</span>
+            <span style={styles.controlDesc}>Introduce un retraso artificial en milisegundos a todos los endpoints del negocio.</span>
           </div>
 
           {/* CONTROL: FALLOS DE TRANSACCIÓN */}
           <div style={styles.chaosControlItem}>
             <div style={styles.controlHeader}>
-              <span style={styles.controlLabel}>Tasa de Fallos de Transacción (DB)</span>
+              <span style={styles.controlLabel}>Tasa de Fallos de Transacción (Base de Datos)</span>
               <span style={{
                 ...styles.controlValue,
-                color: chaosConfig.db_failure_rate > 0.5 ? 'var(--accent-red)' : chaosConfig.db_failure_rate > 0 ? 'var(--accent-orange)' : 'var(--accent-green)'
+                color: chaosConfig.db_failure_rate > 0.5 ? 'var(--accent-rose)' : chaosConfig.db_failure_rate > 0 ? 'var(--accent-amber)' : 'var(--accent-emerald)'
               }}>
                 {Math.round(chaosConfig.db_failure_rate * 100)}%
               </span>
@@ -266,37 +268,37 @@ export default function AdminView({ backendUrl }) {
               onChange={(e) => updateChaos({ db_failure_rate: parseFloat(e.target.value) })}
               style={styles.slider}
             />
-            <span style={styles.controlDesc}>Probabilidad de abortar transacciones justo antes del commit (fuerza Rollback).</span>
+            <span style={styles.controlDesc}>Probabilidad de abortar transacciones de base de datos para forzar reversiones automáticas.</span>
           </div>
 
           {/* CONTROL: SERVIDOR CAÍDO */}
           <div style={styles.chaosControlItem}>
             <div style={styles.controlHeader}>
-              <span style={styles.controlLabel}>Simular Caída del Servidor (503)</span>
+              <span style={styles.controlLabel}>Simular Caída del Backend</span>
             </div>
             <button
               onClick={() => updateChaos({ server_down: !chaosConfig.server_down })}
               style={{
                 ...styles.toggleBtn,
-                background: chaosConfig.server_down ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.03)',
-                borderColor: chaosConfig.server_down ? '#ef4444' : 'rgba(255,255,255,0.1)',
-                color: chaosConfig.server_down ? '#ef4444' : 'var(--text-main)'
+                background: chaosConfig.server_down ? 'rgba(244,63,94,0.1)' : 'rgba(255,255,255,0.03)',
+                borderColor: chaosConfig.server_down ? 'var(--accent-rose)' : 'rgba(255,255,255,0.08)',
+                color: chaosConfig.server_down ? 'var(--accent-rose)' : 'var(--text-primary)'
               }}
             >
-              {chaosConfig.server_down ? '🔴 Servidor Offline' : '🟢 Servidor Activo'}
+              {chaosConfig.server_down ? 'Servidor Offline' : 'Servidor Activo'}
             </button>
-            <span style={styles.controlDesc}>Retorna error 503 en la API e interrumpe la carga de datos.</span>
+            <span style={styles.controlDesc}>Retorna error de servidor offline (código 503) en todas las operaciones del backend.</span>
           </div>
 
           {/* MONITOR DE RESILIENCIA SQA */}
           <div style={styles.resilienceMonitor}>
-            <h4 style={styles.resilienceTitle}>Resiliencia del Sistema SQA</h4>
+            <h4 style={styles.resilienceTitle}>Métricas de Resiliencia</h4>
             <div style={styles.resilienceMetrics}>
               <div style={styles.resilienceMetricBox}>
                 <span style={styles.resilienceLabel}>Éxito de Peticiones</span>
                 <span style={{
                   ...styles.resilienceValue,
-                  color: requestStats.total === 0 ? 'var(--text-main)' : (requestStats.success / requestStats.total) > 0.9 ? 'var(--accent-green)' : (requestStats.success / requestStats.total) > 0.5 ? 'var(--accent-orange)' : 'var(--accent-red)'
+                  color: requestStats.total === 0 ? 'var(--text-primary)' : (requestStats.success / requestStats.total) > 0.9 ? 'var(--accent-emerald)' : (requestStats.success / requestStats.total) > 0.5 ? 'var(--accent-amber)' : 'var(--accent-rose)'
                 }}>
                   {requestStats.total === 0 ? '100%' : `${((requestStats.success / requestStats.total) * 100).toFixed(1)}%`}
                 </span>
@@ -312,18 +314,18 @@ export default function AdminView({ backendUrl }) {
               onClick={() => updateChaos({ latency_ms: 0, db_failure_rate: 0.0, server_down: false })}
               style={styles.resetChaosBtn}
             >
-              🔄 Restablecer Todo (Limpiar Caos)
+              Restablecer Configuración
             </button>
           </div>
         </div>
       </div>
 
       <div style={styles.detailsGrid}>
-        {/* PANEL IZQUIERDO: LATENCIA DE TRANSACCIONES (MONITOREO TÉCNICO SQA) */}
+        {/* PANEL IZQUIERDO: LATENCIA DE TRANSACCIONES */}
         <div className="glass-card" style={styles.chartCard}>
-          <h3 style={styles.cardTitle}>⏱️ LATENCIA DE TRANSACCIONES DE BASE DE DATOS (ms)</h3>
+          <h3 style={styles.cardTitle}>LATENCIA DE TRANSACCIONES (DB)</h3>
           <p className="text-muted" style={styles.cardDesc}>
-            Prueba de Rendimiento SQA: Monitoreo en milisegundos de las últimas transacciones críticas de inserción y actualización en SQLite.
+            Monitoreo en milisegundos del tiempo de respuesta del motor de base de datos.
           </p>
 
           <div style={styles.chartContainer}>
@@ -335,7 +337,7 @@ export default function AdminView({ backendUrl }) {
                     <div style={{
                       ...styles.bar,
                       height: `${Math.min(100, (lat / 50) * 100)}px`,
-                      background: lat > 35 ? 'var(--accent-red)' : lat > 20 ? 'var(--accent-orange)' : 'var(--accent-blue)'
+                      background: lat > 35 ? 'var(--accent-rose)' : lat > 20 ? 'var(--accent-amber)' : 'var(--accent-indigo)'
                     }}></div>
                     <span style={styles.barLabel}>T-{idx+1}</span>
                   </div>
@@ -346,17 +348,17 @@ export default function AdminView({ backendUrl }) {
             )}
           </div>
           <div style={styles.chartFooter}>
-            <span style={{ color: 'var(--accent-green)' }}>● Rápido (&lt;20ms)</span>
-            <span style={{ color: 'var(--accent-orange)' }}>● Moderado (20-35ms)</span>
-            <span style={{ color: 'var(--accent-red)' }}>● Lento (&gt;35ms)</span>
+            <span style={{ color: 'var(--accent-emerald)' }}>● Rápido (&lt;20ms)</span>
+            <span style={{ color: 'var(--accent-amber)' }}>● Moderado (20-35ms)</span>
+            <span style={{ color: 'var(--accent-rose)' }}>● Lento (&gt;35ms)</span>
           </div>
         </div>
 
-        {/* PANEL DERECHO: AUDITORÍA DE TRANSACCIONES ACID EN VIVO */}
+        {/* PANEL DERECHO: AUDITORÍA EN VIVO */}
         <div className="glass-card" style={styles.logsCard}>
-          <h3 style={styles.cardTitle}>📜 REGISTRO DE AUDITORÍA DE TRANSACCIONES SQA</h3>
+          <h3 style={styles.cardTitle}>BITÁCORA DE EVENTOS</h3>
           <p className="text-muted" style={styles.cardDesc}>
-            Trazabilidad de base de datos en tiempo real. Inspecciona los commits de las relaciones Muchos a Muchos.
+            Monitoreo en vivo de transacciones y estados de colas.
           </p>
 
           <div style={styles.logsContainer}>
@@ -369,8 +371,8 @@ export default function AdminView({ backendUrl }) {
               ))
             ) : (
               <div style={styles.emptyLogs}>
-                <p>Monitoreando WebSockets...</p>
-                <span>Realiza transacciones en los paneles de cliente u operador para ver los registros atómicos.</span>
+                <p>Monitoreando canal de eventos...</p>
+                <span>Realice operaciones en los paneles de cliente u operador para ver registros de actividad.</span>
               </div>
             )}
           </div>
@@ -536,7 +538,7 @@ const styles = {
     padding: '1.5rem',
   },
   logsContainer: {
-    background: '#04070f',
+    background: 'var(--console-bg)',
     border: '1px solid rgba(255, 255, 255, 0.04)',
     borderRadius: '12px',
     padding: '1rem',
@@ -654,7 +656,7 @@ const styles = {
   },
   slider: {
     width: '100%',
-    accentColor: 'var(--accent-blue)',
+    accentColor: 'var(--accent-indigo)',
     cursor: 'pointer',
     height: '6px',
     borderRadius: '3px',
@@ -671,8 +673,8 @@ const styles = {
     transition: 'all 0.25s ease',
   },
   resilienceMonitor: {
-    background: 'rgba(59, 130, 246, 0.02)',
-    border: '1px solid rgba(59, 130, 246, 0.08)',
+    background: 'rgba(99, 102, 241, 0.02)',
+    border: '1px solid rgba(99, 102, 241, 0.08)',
     borderRadius: '10px',
     padding: '1rem',
     display: 'flex',
@@ -683,7 +685,7 @@ const styles = {
   resilienceTitle: {
     fontSize: '0.85rem',
     fontWeight: '700',
-    color: 'var(--accent-blue)',
+    color: 'var(--accent-indigo)',
   },
   resilienceMetrics: {
     display: 'flex',

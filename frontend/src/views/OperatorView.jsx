@@ -229,9 +229,9 @@ export default function OperatorView({ operators, modules, backendUrl }) {
         /* ACCESO AL MÓDULO DE ATENCIÓN (M:N REGISTRO) */
         <div className="glass-card" style={styles.loginCard}>
           <div style={styles.header}>
-            <h2 className="gradient-text" style={styles.title}>Terminal de Ventanilla</h2>
+            <h2 className="gradient-text" style={styles.title}>Consola de Ventanilla</h2>
             <p className="text-muted" style={styles.subtitle}>
-              Establece tu puesto de atención activa para registrar y despachar turnos.
+              Establezca su puesto de atención activa para registrar y despachar turnos.
             </p>
           </div>
 
@@ -239,7 +239,7 @@ export default function OperatorView({ operators, modules, backendUrl }) {
 
           <form onSubmit={handleStartSession}>
             <div className="form-group">
-              <label className="form-label">Selecciona tu Nombre (Asesor) *</label>
+              <label className="form-label">Seleccionar Asesor *</label>
               <select
                 className="form-control"
                 value={selectedOperator}
@@ -256,7 +256,7 @@ export default function OperatorView({ operators, modules, backendUrl }) {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Selecciona tu Módulo / Ventanilla *</label>
+              <label className="form-label">Seleccionar Módulo / Ventanilla *</label>
               <select
                 className="form-control"
                 value={selectedModule}
@@ -273,7 +273,7 @@ export default function OperatorView({ operators, modules, backendUrl }) {
             </div>
 
             <button type="submit" className="gradient-btn" style={styles.loginBtn} disabled={loading}>
-              {loading ? 'Inicializando Sesión...' : 'Iniciar Turno de Atención'}
+              {loading ? 'Inicializando Sesión...' : 'Iniciar Sesión'}
             </button>
           </form>
         </div>
@@ -297,10 +297,10 @@ export default function OperatorView({ operators, modules, backendUrl }) {
                 <div style={styles.metaRow}>
                   <span>Canal WebSocket:</span>
                   <span style={{
-                    color: wsStatus === 'CONECTADO' ? 'var(--accent-green)' : wsStatus === 'RECONECTANDO' ? 'var(--accent-orange)' : 'var(--accent-red)',
+                    color: wsStatus === 'CONECTADO' ? 'var(--accent-emerald)' : wsStatus === 'RECONECTANDO' ? 'var(--accent-amber)' : 'var(--accent-rose)',
                     fontWeight: '600'
                   }}>
-                    {wsStatus === 'CONECTADO' ? '🟢 CONECTADO' : wsStatus === 'RECONECTANDO' ? '🟡 RECONECTANDO...' : '🔴 DESCONECTADO'}
+                    {wsStatus === 'CONECTADO' ? 'Conectado' : wsStatus === 'RECONECTANDO' ? 'Reconectando...' : 'Desconectado'}
                   </span>
                 </div>
               </div>
@@ -324,7 +324,7 @@ export default function OperatorView({ operators, modules, backendUrl }) {
                   ))
                 ) : (
                   <div style={styles.emptyQueue}>
-                    <p className="text-muted">No hay pacientes esperando</p>
+                    <p className="text-muted">No hay turnos en espera</p>
                   </div>
                 )}
               </div>
@@ -345,44 +345,60 @@ export default function OperatorView({ operators, modules, backendUrl }) {
                   <h1 style={styles.servingCode}>{currentServing.codigo_ticket}</h1>
                   <h3 style={styles.servingPatient}>{currentServing.usuario?.nombre}</h3>
                   <p className="text-muted" style={styles.servingService}>Servicio: {currentServing.servicio?.nombre_servicio}</p>
-                  <p style={styles.servingWait}>DNI del Paciente: <strong>{currentServing.usuario?.dni}</strong></p>
+                  <p style={styles.servingWait}>Documento de Identidad: <strong>{currentServing.usuario?.dni}</strong></p>
 
                   <div style={styles.actionsRow}>
                     <button
                       onClick={handleRecall}
                       className="gradient-btn"
-                      style={{ ...styles.actionBtn, background: 'rgba(255, 255, 255, 0.05)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: 'none' }}
+                      style={{ ...styles.actionBtn, background: 'rgba(255, 255, 255, 0.03)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.08)', boxShadow: 'none' }}
                       disabled={loading}
                     >
-                      🔊 Re-Llamar
+                      <svg className="svg-icon" viewBox="0 0 24 24">
+                        <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                      </svg>
+                      Re-Llamar
                     </button>
                     
                     <button
                       onClick={handleNoShow}
                       className="gradient-btn"
-                      style={{ ...styles.actionBtn, background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', boxShadow: '0 4px 15px rgba(239, 68, 68, 0.25)' }}
+                      style={{ ...styles.actionBtn, background: 'linear-gradient(135deg, var(--accent-rose) 0%, #991b1b 100%)', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 4px 15px rgba(244, 63, 94, 0.2)' }}
                       disabled={loading}
                     >
-                      ✘ No se presentó
+                      <svg className="svg-icon" viewBox="0 0 24 24">
+                        <line x1="18" x2="6" y1="6" y2="18"/>
+                        <line x1="6" x2="18" y1="6" y2="18"/>
+                      </svg>
+                      Inasistencia
                     </button>
 
                     <button
                       onClick={handleCloseTicket}
                       className="gradient-btn"
-                      style={{ ...styles.actionBtn, background: 'linear-gradient(135deg, var(--accent-green) 0%, #047857 100%)', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.25)' }}
+                      style={{ ...styles.actionBtn, background: 'linear-gradient(135deg, var(--accent-emerald) 0%, #065f46 100%)', border: '1px solid rgba(255,255,255,0.05)', boxShadow: '0 4px 15px rgba(16, 185, 129, 0.2)' }}
                       disabled={loading}
                     >
-                      ✓ Cerrar Turno (Cerrado SQA)
+                      <svg className="svg-icon" viewBox="0 0 24 24">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      Finalizar Turno
                     </button>
                   </div>
                 </div>
               ) : (
                 /* CONSOLA VACÍA */
                 <div style={styles.idleContainer}>
-                  <div style={styles.idleIcon}>🛋️</div>
-                  <h2>Consola Disponible</h2>
+                  <div style={styles.idleIcon}>
+                    <svg className="svg-icon svg-icon-lg" style={{ color: 'var(--text-muted)', marginBottom: '1.2rem', width: '3.5rem', height: '3.5rem' }} viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                  </div>
+                  <h2>Consola en Espera</h2>
                   <p className="text-muted" style={styles.idleText}>
-                    Estás listo para atender en la ventanilla {activeSession.ventanilla.numero_modulo}.
+                    El módulo {activeSession.ventanilla.numero_modulo} está listo para atender.
                   </p>
                   <button
                     onClick={handleCallNext}
@@ -393,7 +409,7 @@ export default function OperatorView({ operators, modules, backendUrl }) {
                     {loading ? 'Llamando...' : 'Llamar Siguiente Turno'}
                   </button>
                   {activeQueue.length === 0 && (
-                    <p style={styles.queueWarning}>La cola en espera está vacía.</p>
+                    <p style={styles.queueWarning}>No hay turnos disponibles en cola.</p>
                   )}
                 </div>
               )}
@@ -466,7 +482,7 @@ const styles = {
   exitBtn: {
     background: 'none',
     border: 'none',
-    color: 'var(--accent-red)',
+    color: 'var(--accent-rose)',
     fontWeight: '600',
     fontSize: '0.85rem',
     cursor: 'pointer',
@@ -632,7 +648,7 @@ const styles = {
   queueWarning: {
     marginTop: '0.8rem',
     fontSize: '0.8rem',
-    color: 'var(--accent-red)',
+    color: 'var(--accent-rose)',
     fontWeight: '500',
   }
 };

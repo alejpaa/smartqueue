@@ -100,9 +100,9 @@ export default function ClientView({ services, backendUrl }) {
         {!successTicket ? (
           <>
             <div style={styles.header}>
-              <h2 className="gradient-text" style={styles.title}>SmartQueue</h2>
+              <h2 className="gradient-text" style={styles.title}>Solicitud de Turno</h2>
               <p className="text-muted" style={styles.subtitle}>
-                Digitaliza tu cola. Escanea el código QR físico de la sede y solicita tu turno en segundos.
+                Seleccione el servicio requerido para obtener su ticket de atención digital.
               </p>
             </div>
 
@@ -158,8 +158,8 @@ export default function ClientView({ services, backendUrl }) {
                       onClick={() => !loading && setIdServicio(serv.id_servicio.toString())}
                       style={{
                         ...styles.serviceItem,
-                        borderColor: idServicio === serv.id_servicio.toString() ? 'var(--accent-blue)' : 'rgba(255,255,255,0.06)',
-                        background: idServicio === serv.id_servicio.toString() ? 'rgba(59,130,246,0.08)' : 'rgba(255,255,255,0.02)'
+                        borderColor: idServicio === serv.id_servicio.toString() ? 'var(--accent-indigo)' : 'rgba(255,255,255,0.04)',
+                        background: idServicio === serv.id_servicio.toString() ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.01)'
                       }}
                     >
                       <h4 style={styles.serviceName}>{serv.nombre_servicio}</h4>
@@ -175,22 +175,26 @@ export default function ClientView({ services, backendUrl }) {
                 style={styles.submitBtn}
                 disabled={loading}
               >
-                {loading ? 'Generando Turno...' : 'Solicitar Turno Digital'}
+                {loading ? 'Generando Turno...' : 'Solicitar Turno'}
               </button>
             </form>
           </>
         ) : (
           <div style={styles.successContainer} className="fade-in">
-            <div style={styles.successIcon}>✓</div>
-            <h3 style={styles.successTitle}>¡Turno Generado Exitosamente!</h3>
+            <div style={styles.successIcon}>
+              <svg className="svg-icon svg-icon-lg" style={{ color: 'var(--accent-emerald)' }} viewBox="0 0 24 24">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <h3 style={styles.successTitle}>Turno Confirmado</h3>
             <p className="text-muted" style={styles.successSub}>
-              Guarda esta pantalla o toma captura. El sistema te llamará automáticamente.
+              Su solicitud ha sido registrada. Por favor, conserve esta pantalla.
             </p>
 
             {/* TICKET DIGITAL PREMIUM */}
             <div style={styles.ticketCard}>
               <div style={styles.ticketHeader}>
-                <span style={styles.ticketHospital}>CLÍNICA SMARTQUEUE</span>
+                <span style={styles.ticketHospital}>TICKET DE ATENCIÓN</span>
                 <span className="badge badge-espera">{successTicket.estado_turno}</span>
               </div>
               <div style={styles.ticketBody}>
@@ -199,7 +203,7 @@ export default function ClientView({ services, backendUrl }) {
                 <div style={styles.divider}></div>
                 <div style={styles.ticketDetails}>
                   <div style={styles.detailRow}>
-                    <span className="text-muted">Paciente:</span>
+                    <span className="text-muted">Cliente:</span>
                     <strong>{successTicket.usuario?.nombre || successTicket.nombre_cliente}</strong>
                   </div>
                   <div style={styles.detailRow}>
@@ -207,9 +211,9 @@ export default function ClientView({ services, backendUrl }) {
                     <strong>{successTicket.usuario?.dni || successTicket.dni}</strong>
                   </div>
                   <div style={styles.detailRow}>
-                    <span className="text-muted">Espera Aprox:</span>
-                    <strong style={{ color: 'var(--accent-orange)' }}>
-                      ~{successTicket.tiempo_espera_estimado} minutos
+                    <span className="text-muted">Espera aproximada:</span>
+                    <strong style={{ color: 'var(--accent-amber)' }}>
+                      ~{successTicket.tiempo_espera_estimado} min
                     </strong>
                   </div>
                 </div>
@@ -224,22 +228,23 @@ export default function ClientView({ services, backendUrl }) {
                       <div
                         key={i}
                         style={{
-                          backgroundColor: (i % 3 === 0 || i % 7 === 0 || i < 8 || i % 8 === 0 || i > 56) ? '#090d16' : '#ffffff',
-                          gridArea: 'span 1'
+                          backgroundColor: (i % 3 === 0 || i % 7 === 0 || i < 8 || i % 8 === 0 || i > 56) ? 'var(--accent-indigo)' : 'rgba(255, 255, 255, 0.25)',
+                          gridArea: 'span 1',
+                          borderRadius: '1px'
                         }}
                       />
                     ))}
                   </div>
                 </div>
-                <p style={styles.qrText}>Escaneo de seguridad del ticket</p>
+                <p style={styles.qrText}>Verificación digital</p>
               </div>
               <div style={styles.ticketFooter}>
-                <span>UNMSM - SQA Verification Certified</span>
+                <span>SmartQueue Verified System</span>
               </div>
             </div>
 
             <button onClick={handleReset} className="gradient-btn" style={styles.resetBtn}>
-              Pedir otro Turno
+              Solicitar Nuevo Turno
             </button>
           </div>
         )}
@@ -340,18 +345,18 @@ const styles = {
     marginBottom: '1.8rem',
   },
   ticketCard: {
-    background: '#ffffff',
-    color: '#090d16',
+    background: 'var(--ticket-bg)',
+    color: 'var(--ticket-text)',
     borderRadius: '16px',
     overflow: 'hidden',
-    boxShadow: '0 12px 30px rgba(0,0,0,0.15)',
+    boxShadow: '0 12px 40px rgba(0,0,0,0.3)',
     marginBottom: '2rem',
     textAlign: 'left',
-    border: '1px solid #e2e8f0',
+    border: '1px solid var(--ticket-border)',
   },
   ticketHeader: {
-    background: '#090d16',
-    color: '#ffffff',
+    background: 'var(--ticket-header-bg)',
+    color: 'var(--ticket-text)',
     padding: '0.75rem 1.25rem',
     display: 'flex',
     justifyContent: 'space-between',
@@ -359,9 +364,10 @@ const styles = {
     fontSize: '0.75rem',
     fontWeight: '700',
     letterSpacing: '0.05em',
+    borderBottom: '1px solid var(--ticket-header-border)',
   },
   ticketHospital: {
-    color: '#60a5fa',
+    color: 'var(--accent-indigo)',
   },
   ticketBody: {
     padding: '1.5rem 1.5rem 1rem 1.5rem',
@@ -370,18 +376,19 @@ const styles = {
   ticketCode: {
     fontSize: '3.5rem',
     fontWeight: '900',
-    color: '#090d16',
-    letterSpacing: '-0.03em',
+    color: 'var(--ticket-text)',
+    letterSpacing: '-0.01em',
     lineHeight: '1',
     margin: '0.5rem 0',
+    textShadow: '0 0 20px rgba(99, 102, 241, 0.2)',
   },
   ticketService: {
     fontSize: '1rem',
     fontWeight: '600',
-    color: '#475569',
+    color: 'var(--text-secondary)',
   },
   divider: {
-    borderTop: '2px dashed #cbd5e1',
+    borderTop: '2px dashed var(--ticket-divider)',
     margin: '1.25rem 0',
     position: 'relative',
   },
@@ -399,15 +406,15 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     padding: '0 1.5rem 1.5rem 1.5rem',
-    background: '#ffffff',
+    background: 'transparent',
   },
   qrCode: {
     width: '90px',
     height: '90px',
-    border: '1px solid #e2e8f0',
+    border: '1px solid var(--ticket-qr-border)',
     padding: '5px',
     borderRadius: '8px',
-    background: '#ffffff',
+    background: 'var(--ticket-qr-bg)',
   },
   qrGrid: {
     display: 'grid',
@@ -419,17 +426,17 @@ const styles = {
   },
   qrText: {
     fontSize: '0.7rem',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
     marginTop: '0.5rem',
     fontWeight: '500',
   },
   ticketFooter: {
-    background: '#f8fafc',
+    background: 'var(--ticket-footer-bg)',
     padding: '0.75rem 1.25rem',
-    borderTop: '1px solid #e2e8f0',
+    borderTop: '1px solid var(--ticket-footer-border)',
     fontSize: '0.7rem',
     textAlign: 'center',
-    color: '#94a3b8',
+    color: 'var(--text-muted)',
     fontWeight: '600',
     letterSpacing: '0.05em',
   },

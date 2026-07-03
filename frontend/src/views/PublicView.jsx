@@ -148,13 +148,16 @@ export default function PublicView({ backendUrl }) {
     <div style={styles.container} className="fade-in">
       <div style={styles.header}>
         <div style={styles.logoRow}>
+          <svg className="svg-icon" style={styles.brandIcon} viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
           <h1 className="gradient-text" style={styles.logo}>SmartQueue</h1>
-          <span style={styles.tagline}>Módulo de Sala de Espera</span>
+          <span style={styles.tagline}>Monitor de Sala</span>
         </div>
         <div style={styles.statusRow}>
           <span style={{
             ...styles.dot,
-            backgroundColor: wsStatus === 'CONECTADO' ? 'var(--accent-green)' : wsStatus === 'RECONECTANDO' ? 'var(--accent-orange)' : 'var(--accent-red)'
+            backgroundColor: wsStatus === 'CONECTADO' ? 'var(--accent-emerald)' : wsStatus === 'RECONECTANDO' ? 'var(--accent-amber)' : 'var(--accent-rose)'
           }}></span>
           <span style={styles.wsText}>
             {wsStatus === 'CONECTADO' ? 'En Vivo' : wsStatus === 'RECONECTANDO' ? 'Reconectando...' : 'Desconectado'}
@@ -165,31 +168,31 @@ export default function PublicView({ backendUrl }) {
       <div style={styles.mainGrid}>
         {/* PANEL PRINCIPAL: TURNO ACTUAL LLAMADO */}
         <div className="glass-card" style={styles.mainCard}>
-          <h3 style={styles.panelTitle}>AHORA ATENDIENDO</h3>
+          <h3 style={styles.panelTitle}>TURNO ACTUAL</h3>
           {currentCalled ? (
             <div style={styles.calloutContainer} className="fade-in">
               <div style={styles.glowCircle}>
                 <h1 style={styles.codeText}>{currentCalled.codigo_ticket}</h1>
               </div>
               <h2 style={styles.moduleText}>
-                IR A: <span style={{ color: 'var(--accent-purple)' }}>VENTANILLA {currentCalled.ventanilla?.numero_modulo}</span>
+                IR A: <span style={{ color: 'var(--accent-indigo)' }}>VENTANILLA {currentCalled.ventanilla?.numero_modulo}</span>
               </h2>
               <div style={styles.ticketMetaData}>
-                <span style={styles.patientMeta}>Paciente: {currentCalled.nombre_cliente}</span>
+                <span style={styles.patientMeta}>Cliente: {currentCalled.nombre_cliente}</span>
                 <span style={styles.serviceMeta}>{currentCalled.servicio?.nombre_servicio}</span>
               </div>
             </div>
           ) : (
             <div style={styles.emptyState}>
               <p>Esperando llamados de ventanilla...</p>
-              <span style={styles.subEmpty}>Los turnos activos aparecerán en esta pantalla.</span>
+              <span style={styles.subEmpty}>Los turnos activos aparecerán en esta pantalla de forma automática.</span>
             </div>
           )}
         </div>
 
         {/* PANEL LATERAL: HISTORIAL DE TURNOS LLAMADOS */}
         <div className="glass-card" style={styles.sidebarCard}>
-          <h3 style={styles.panelTitle}>TURNOS RECIENTES</h3>
+          <h3 style={styles.panelTitle}>LLAMADOS RECIENTES</h3>
           <div style={styles.recentList}>
             {recentCalled.length > 0 ? (
               recentCalled.map((t, idx) => (
@@ -205,7 +208,7 @@ export default function PublicView({ backendUrl }) {
               ))
             ) : (
               <div style={styles.emptySidebar}>
-                <p className="text-muted">No hay llamados previos</p>
+                <p className="text-muted">No hay registros previos</p>
               </div>
             )}
           </div>
@@ -213,9 +216,9 @@ export default function PublicView({ backendUrl }) {
           {/* SECCIÓN QR PARA ACCESO MÓVIL */}
           <div style={styles.qrAccessContainer}>
             <div style={styles.qrAccessDivider}></div>
-            <h4 style={styles.qrAccessTitle}>📱 Registro Móvil</h4>
+            <h4 style={styles.qrAccessTitle}>Acceso Móvil</h4>
             <p className="text-muted" style={styles.qrAccessDesc}>
-              Escanea este código QR con tu celular para solicitar tu turno digitalmente.
+              Escanee este código QR con su dispositivo móvil para solicitar un turno digitalmente.
             </p>
             <div style={styles.qrAccessBox}>
               <img
@@ -232,11 +235,11 @@ export default function PublicView({ backendUrl }) {
       {/* MARQUEE / TICKER INFORMATIVO SQA */}
       <div style={styles.tickerContainer}>
         <div style={styles.tickerContent}>
-          <span>⚠️ <strong>INFORMACIÓN AL PACIENTE:</strong> Por favor tenga a la mano su DNI.</span>
+          <span><strong>INFORMACIÓN DE ATENCIÓN:</strong> Por favor tenga a la mano su documento de identidad (DNI).</span>
           <span>•</span>
-          <span>📱 <strong>ATENCIÓN DIGITAL:</strong> Puede revisar el estado de la cola escaneando el código QR de su ticket en su celular.</span>
+          <span><strong>SOLICITUD DIGITAL:</strong> Puede solicitar un turno escaneando el código QR desde su dispositivo móvil.</span>
           <span>•</span>
-          <span>🎓 <strong>PROYECTO UNMSM:</strong> SmartQueue SQA Framework - Verificando la calidad e integridad del servicio de atención ciudadana.</span>
+          <span><strong>SMARTQUEUE:</strong> Gestión optimizada y flujo eficiente de colas en tiempo real.</span>
         </div>
       </div>
     </div>
@@ -260,8 +263,15 @@ const styles = {
   },
   logoRow: {
     display: 'flex',
-    alignItems: 'baseline',
-    gap: '0.8rem',
+    alignItems: 'center',
+    gap: '0.6rem',
+  },
+  brandIcon: {
+    width: '1.8rem',
+    height: '1.8rem',
+    stroke: 'var(--accent-indigo)',
+    strokeWidth: 2.5,
+    fill: 'none',
   },
   logo: {
     fontSize: '2.2rem',
@@ -269,7 +279,7 @@ const styles = {
   },
   tagline: {
     fontSize: '0.9rem',
-    color: 'var(--text-muted)',
+    color: 'var(--text-secondary)',
     fontWeight: '500',
   },
   statusRow: {
@@ -306,7 +316,7 @@ const styles = {
     justifyContent: 'center',
     padding: '3rem',
     textAlign: 'center',
-    background: 'radial-gradient(circle at center, rgba(139, 92, 246, 0.05) 0%, rgba(18, 24, 38, 0.75) 100%)',
+    background: 'radial-gradient(circle at center, rgba(99, 102, 241, 0.03) 0%, rgba(11, 15, 25, 0.8) 100%)',
   },
   panelTitle: {
     fontSize: '0.85rem',
@@ -327,12 +337,13 @@ const styles = {
     width: '100%',
   },
   glowCircle: {
-    width: '260px',
-    height: '260px',
-    borderRadius: '50%',
-    background: 'rgba(18, 24, 38, 0.9)',
-    border: '3px solid var(--accent-purple)',
-    boxShadow: '0 0 30px rgba(139, 92, 246, 0.3), inset 0 0 20px rgba(139, 92, 246, 0.15)',
+    width: '100%',
+    maxWidth: '385px',
+    padding: '2rem 1.5rem',
+    borderRadius: '20px',
+    background: 'rgba(11, 15, 25, 0.6)',
+    border: '1px solid rgba(99, 102, 241, 0.25)',
+    boxShadow: '0 0 30px rgba(99, 102, 241, 0.15), inset 0 0 20px rgba(99, 102, 241, 0.05)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -424,9 +435,9 @@ const styles = {
     fontWeight: '600',
     padding: '0.35rem 0.75rem',
     borderRadius: '8px',
-    background: 'rgba(139, 92, 246, 0.1)',
-    color: 'var(--accent-purple)',
-    border: '1px solid rgba(139, 92, 246, 0.2)',
+    background: 'rgba(99, 102, 241, 0.08)',
+    color: 'var(--accent-indigo)',
+    border: '1px solid rgba(99, 102, 241, 0.15)',
   },
   emptySidebar: {
     display: 'flex',
