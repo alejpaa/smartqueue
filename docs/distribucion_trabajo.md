@@ -65,7 +65,7 @@ A continuación, se define el rol, las tareas técnicas de código y las tareas 
     *   Utilizar `pytest-cov` para generar reportes automáticos de cobertura.
 2.  **Pipeline CI/CD**:
     *   Diseñar y configurar un workflow de **GitHub Actions** (`.github/workflows/ci.yml`).
-    *   El pipeline debe ejecutarse en cada *push* o *pull request*, instalando dependencias con `uv` y `bun`, ejecutando `pytest` (backend) y corriendo las pruebas E2E de la Persona 1 (frontend).
+    *   El pipeline debe ejecutarse en cada *push* o *pull request*, ejecutando `pytest` (backend) y corriendo las pruebas E2E de la Persona 1 (frontend).
 3.  **Automatización de Despliegue de Pruebas**: Configurar reportes automáticos de ejecución en la pestaña *Actions* de GitHub.
 
 #### 📄 Tareas de Rúbrica y Documentación:
